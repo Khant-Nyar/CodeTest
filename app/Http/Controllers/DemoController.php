@@ -11,7 +11,6 @@ use AmrShawky\Currency;
 
 
 
-// https://v6.exchangerate-api.com/v6/229009ada05e7c636483e4a8/pair/USD/MMK/1
 class DemoController extends Controller
 {
     public function list(Request $request,)
@@ -21,35 +20,33 @@ class DemoController extends Controller
         $getuser        = $this->getReqUser($request);
         $countryCode    = $getuser->countryCode;
 
-        $jsonData = json_decode(Storage::get('public/currencybycountry.json'), true);
-        $urrencycode = $jsonData[$countryCode];
-        // dd($urrencycode);//MMK
+        $urrencycode    = $this->unitConver($countryCode);
 
-        $data = '';
-        foreach ($jsonData as $key) {
-            $data .= $key . ',';
-        }
 
+        // dd($urrencycode); //MMK
+
+        // https://v6.exchangerate-api.com/v6/229009ada05e7c636483e4a8/pair/USD/MMK/1
         // $data = Http::get("{$route}/latest?access_key={$apiKey}&symbols={$data}"); //&base={$base}&symbols={$target}
-        $data = "https://open.er-api.com/v6/latest/{$urrencycode}";
+        $data = "{$route}/latest/{$urrencycode}";
         $data = Http::get($data);
+        $currencydata = [];
         if (false !== $data) {
             $data = json_decode($data);
+            $currencydata = $data->rates;
         }
-        return $data;
 
 
         $userInfo = [
             'userIp'        => $getuser->ip,
             'countryName'   => $getuser->countryName,
             'regionName'    => $getuser->regionName,
-            'currencyRate'  => $data,
+            'currencyRate'  => $currencydata,
         ];
 
         if (!count($userInfo)) {
             return $this->sendError(204, 'No Data Found');
         }
-        return $this->sendResponse($userInfo);
+        return $this->sendResponse('get user data', $userInfo);
     }
 
     public function calc(Request $request)
@@ -63,10 +60,10 @@ class DemoController extends Controller
 
         // return $fetchApi;
         $rate = $fetchApi['conversion_result'];
-        $orginaltvalue = $amount;
+        $orginaltvalue = $amount * 1;
         $targetvalue = $amount * $fetchApi['conversion_rate'];
         // return $targetvalue;
-        $percentage  = (($targetvalue - $orginaltvalue) / $rate) * 100;
+        $percentage  = (($targetvalue - $orginaltvalue) / $orginaltvalue) * 100;
 
         // return $percentage;
         $data = [
@@ -94,7 +91,7 @@ class DemoController extends Controller
     private function getReqUser($req)
     {
         // $ip = $req->ip();
-        $ip = '37.111.0.129';
+        $ip = '203.23.128.176';
         $data = Location::get($ip);
         return $data;
     }
@@ -103,9 +100,9 @@ class DemoController extends Controller
     // & to = JPY
     // & amount = 25
     // symbols
-    private function unitConver($request = '', $base = 'EUR', $target = 'USD', $amout = 1)
+    private function unitConver($country)
     {
-        $convert = Currency::convert()->from($base)->to($target)->amount($amout)->get();
-        return $convert;
+        $jsonData = json_decode(Storage::get('public/currencybycountry.json'), true);
+        return $jsonData[$country];
     }
 }

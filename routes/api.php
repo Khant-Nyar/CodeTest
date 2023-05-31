@@ -23,4 +23,8 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     //banners
     Route::get('req', [DemoController::class, 'list']);
     Route::post('convert', [DemoController::class, 'calc']);
+
+    Route::fallback(function () {
+        return abort(404);
+    });
 });
