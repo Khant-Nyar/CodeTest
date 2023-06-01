@@ -57,27 +57,32 @@ class DemoController extends Controller
         $target  = $request->target;
 
         $fetchApi = Http::get("https://v6.exchangerate-api.com/v6/229009ada05e7c636483e4a8/pair/{$orginal}/{$target}/{$amount}");
+        $reverseApi = Http::get("https://v6.exchangerate-api.com/v6/229009ada05e7c636483e4a8/pair/{$target}/{$orginal}/{$amount}");
 
-        // return $fetchApi;
-        $rate = $fetchApi['conversion_result'];
-        $orginaltvalue = $amount * 1;
-        $targetvalue = $amount * $fetchApi['conversion_rate'];
-        // return $targetvalue;
-        $percentage  = (($targetvalue - $orginaltvalue) / $orginaltvalue) * 100;
+        $rate = $fetchApi['conversion_rate'] * 1;
+        $reverserate = $reverseApi['conversion_rate'] * 1;
+        $rate - $reverserate;
 
-        // return $percentage;
+
+        $dif = $rate - (int)$reverserate;
+        (int)$percentage  = ($dif / (int)$reverserate) * 100;
         $data = [
             'source'        => [
                 'currencycode'  => $request->original,
-                'orginal_pirce' => $orginaltvalue
+                'currencyrate'  => $rate,
+                'orginal_pirce' => $amount * 1
             ],
             'target'        => [
                 'currencycode'  =>  $request->target,
-                'target_price'  =>  $targetvalue
+                'currencyrate'  => $reverserate,
+                'target_price'  =>  $rate * $amount,
             ],
-            'percentage'    => $percentage,
+            'percentage'    => (int)$percentage,
         ];
-        return $data;
+        if (!count($data)) {
+            return $this->sendError(204, 'No Data Found');
+        }
+        return $this->sendResponse('calculate between original to target rate', $data);
     }
 
     private function getApiInfo()
@@ -91,7 +96,7 @@ class DemoController extends Controller
     private function getReqUser($req)
     {
         // $ip = $req->ip();
-        $ip = '203.23.128.176';
+        $ip = '37.111.7.25'; //for test i don't get public address in localmachine so
         $data = Location::get($ip);
         return $data;
     }
